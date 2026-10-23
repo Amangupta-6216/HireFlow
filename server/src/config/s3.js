@@ -23,7 +23,10 @@ if (hasAwsCredentials) {
 
 // Local storage directory fallback
 const LOCAL_STORAGE_DIR = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+
+// Create local upload directory only outside Vercel.
+// Vercel's filesystem should not be used for persistent uploads.
+if (!process.env.VERCEL && !fs.existsSync(LOCAL_STORAGE_DIR)) {
   fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
 }
 
@@ -49,17 +52,23 @@ const uploadFile = async (buffer, key, mimetype) => {
     };
   }
 
-  // Local fallback storage
-  const filePath = path.join(LOCAL_STORAGE_DIR, key);
-  const dirPath = path.dirname(filePath);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-  await fs.promises.writeFile(filePath, buffer);
-  return {
-    key,
-    location: `/api/profile/resumes/download/${key}`,
-  };
+// Local fallback storage is for local development only.
+if (process.env.VERCEL) {
+  throw new Error(
+    'Resume storage is not configured. Configure AWS S3 for production.'
+  );
+}
+
+const filePath = path.join(LOCAL_STORAGE_DIR, key);
+const dirPath = path.dirname(filePath);
+
+await fs.promises.mkdir(dirPath, { recursive: true });
+await fs.promises.writeFile(filePath, buffer);
+
+return {
+  key,
+  location: `/api/profile/resumes/download/${key}`,
+};
 };
 
 /**
