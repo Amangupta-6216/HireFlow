@@ -15,6 +15,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
+
 app.set('trust proxy', 1);
 
 // 1. Security Headers
